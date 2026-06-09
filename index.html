@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Scuba Cat PRO — Toprak Ahmet Aydoğmuş</title>
+    <style>
+        /* ── TEMEL AYARLAR ── */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        body {
+            background: #040914;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none
+        }
+
+        #wrap {
+            position: relative;
+            width: 100vw;
+            height: 100vh
+        }
+
+        /* ── KATMANLAR (Z-INDEX) ── */
+        #video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            opacity: 0;
+            pointer-events: none
+        }
+
+        #lmCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+            pointer-events: none;
+            z-index: 1
+        }
+
+        #uiCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2
+        }
+
+        #catsContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 3
+        }
+
+        /* ── SİBER AKADEMİ BAŞLANGIÇ EKRANI ── */
+        #startScreen {
+            position: absolute;
+            inset: 0;
+            z-index: 100;
+            background: radial-gradient(circle at center, #0b1e3a 0%, #040914 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 30px;
+        }
+
+        .logo-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid rgba(100, 200, 255, .3);
+            border-radius: 16px;
+            padding: 15px 30px;
+            background: rgba(100, 200, 255, .05);
+            box-shadow: 0 0 35px rgba(100, 200, 255, .1);
+            backdrop-filter: blur(5px);
+        }
+
+        .logo-txt {
+            font-family: 'Courier New', monospace;
+            font-size: 24px;
+            font-weight: bold;
+            color: #64c8ff;
+            letter-spacing: .15em;
+            text-transform: uppercase;
+            text-shadow: 0 0 15px rgba(100, 200, 255, .8)
+        }
+
+        .logo-sub {
+            font-size: 11px;
+            color: rgba(100, 200, 255, .6);
+            letter-spacing: .25em;
+            text-transform: uppercase
+        }
+
+        .cat-big {
+            font-size: 85px;
+            line-height: 1;
+            filter: drop-shadow(0 0 25px rgba(255, 200, 50, .6));
+            margin: 10px 0;
+        }
+
+        .title {
+            font-family: Georgia, serif;
+            font-size: 26px;
+            color: #ffc832;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            text-shadow: 0 0 20px rgba(255, 200, 50, .8);
+            text-align: center
+        }
+
+        .credit {
+            background: rgba(255, 200, 50, .08);
+            border: 1px solid rgba(255, 200, 50, .3);
+            border-radius: 12px;
+            padding: 12px 20px;
+            text-align: center
+        }
+
+        .c-name {
+            color: #ffc832;
+            font-size: 15px;
+            font-weight: bold;
+            letter-spacing: .08em
+        }
+
+        .c-for {
+            color: rgba(255, 200, 50, .7);
+            font-size: 12px;
+            margin-top: 4px;
+            letter-spacing: .05em
+        }
+
+        .btn {
+            background: rgba(100, 200, 255, .1);
+            border: 2px solid #64c8ff;
+            color: #64c8ff;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: .15em;
+            padding: 15px 45px;
+            border-radius: 50px;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 0 25px rgba(100, 200, 255, .3), inset 0 0 15px rgba(100, 200, 255, .1);
+            transition: all .3s ease;
+        }
+
+        .btn:hover {
+            background: rgba(100, 200, 255, .2);
+            transform: scale(1.05);
+            box-shadow: 0 0 35px rgba(100, 200, 255, .5)
+        }
+
+        .btn:active {
+            transform: scale(.95)
+        }
+
+        /* ── HUD VE GELİŞMİŞ PANEL ── */
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 15px;
+            pointer-events: none;
+            z-index: 20
+        }
+
+        .pill {
+            background: rgba(4, 9, 20, .8);
+            border: 1px solid rgba(100, 200, 255, .4);
+            border-radius: 25px;
+            padding: 8px 15px;
+            color: #64c8ff;
+            font-size: 11px;
+            letter-spacing: .08em;
+            backdrop-filter: blur(10px)
+        }
+
+        .pill span {
+            display: block;
+            font-size: 13px;
+            font-weight: bold;
+            color: #a0e8ff;
+            margin-top: 2px
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff4444;
+            display: inline-block;
+            margin-right: 6px;
+            animation: pulse 1s ease-in-out infinite
+        }
+
+        .dot.on {
+            background: #44ff88;
+            box-shadow: 0 0 10px #44ff88
+        }
+
+        /* Geliştirici Paneli */
+        #devPanel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(4, 9, 20, .85);
+            border: 1px solid rgba(100, 200, 255, .3);
+            border-radius: 15px;
+            padding: 15px;
+            z-index: 50;
+            display: none;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .5);
+            width: 280px;
+            transition: transform 0.3s ease;
+        }
+
+        #devPanel.hidden {
+            transform: translateX(-120%);
+        }
+
+        .panel-title {
+            color: #ffc832;
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 200, 50, .3);
+            padding-bottom: 5px;
+        }
+
+        .control-group {
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            color: #a0e8ff;
+            font-size: 10px;
+            letter-spacing: 1px;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            accent-color: #64c8ff;
+        }
+
+        .panel-toggle {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(100, 200, 255, .1);
+            border: 1px solid #64c8ff;
+            color: #64c8ff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 51;
+            font-family: 'Courier New';
+            font-size: 11px;
+            font-weight: bold;
+            display: none;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Performans Metrikleri */
+        #fpsMeter {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, .7);
+            border: 1px solid #44ff88;
+            color: #44ff88;
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            z-index: 20;
+        }
+
+        /* Yükleme Ekranı */
+        #loadScreen {
+            position: absolute;
+            inset: 0;
+            z-index: 90;
+            background: rgba(4, 9, 20, .95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px
+        }
+
+        .ring {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(100, 200, 255, .1);
+            border-top-color: #64c8ff;
+            border-radius: 50%;
+            animation: spin .7s linear infinite
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: .3
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="wrap">
+        <video id="video" playsinline webkit-playsinline autoplay muted></video>
+        <canvas id="lmCanvas"></canvas>
+        <canvas id="uiCanvas"></canvas>
+        <div id="catsContainer"></div>
+
+        <div id="hud">
+            <div class="pill"><span class="dot" id="dotEl"></span>YAPAY ZEKA<span id="stTxt">BEKLENİYOR</span></div>
+            <div id="fpsMeter">FPS: --</div>
+            <div class="pill" style="text-align:right">SCUBA CAT PRO<span id="modeTxt">HAZIRLANIYOR</span></div>
+        </div>
+
+        <button id="panelBtn" class="panel-toggle" onclick="togglePanel()">⚙️ SİSTEM ARAYÜZÜ</button>
+        <div id="devPanel" class="hidden">
+            <div class="panel-title">SCUBAA</div>
+            <div class="control-group">
+                <label>KEDİ BOYUTU (BÜYÜK)</label>
+                <input type="range" id="sizeSlider" min="150" max="400" value="250">
+            </div>
+            <div class="control-group">
+                <label>MAKSİMUM KEDİ SAYISI</label>
+                <input type="range" id="countSlider" min="1" max="15" value="6">
+            </div>
+            <div class="control-group">
+                <label>YERÇEKİMİ / SÜZÜLME HIZI</label>
+                <input type="range" id="gravitySlider" min="1" max="10" value="5">
+            </div>
+            <div style="text-align:center; margin-top:10px; color:rgba(255,255,255,0.3); font-size:9px;">V9.0 ENGINE
+            </div>
+        </div>
+
+        <div id="loadScreen">
+            <div class="ring"></div>
+            <div style="color:#64c8ff;font-size:12px;letter-spacing:2px;text-align:center;" id="ldTxt">SİSTEM
+                BAŞLATILIYOR...</div>
+        </div>
+
+        <div id="startScreen">
+            <div class="logo-wrap">
+                <div class="logo-txt">SCUBA KEDİİ</div>
+                <div class="logo-sub">GELİŞMİŞ GÖRÜNTÜ İŞLEME</div>
+            </div>
+            <div class="cat-big">🤿🌊</div>
+            <div class="title">SCUBA CAT PRO</div>
+            <div class="credit">
+                <div class="c-name">Toprak Ahmet Aydoğmuş</div>
+                <div class="c-for">Öykü İçin Tasarlandı </div>
+            </div>
+            <button class="btn" onclick="startApp()">SİSTEMİ BAŞLAT</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1632432234/camera_utils.js"
+        crossorigin="anonymous"></script>
+    <script>
+        // ═══════════════════════════════════════════
+        //  SİSTEM DEĞİŞKENLERİ & ARAYÜZ
+        // ═══════════════════════════════════════════
+        const video = document.getElementById('video');
+        const lmCv = document.getElementById('lmCanvas');
+        const uiCv = document.getElementById('uiCanvas');
+        const catsContainer = document.getElementById('catsContainer');
+        const lmCtx = lmCv.getContext('2d');
+        const uiCtx = uiCv.getContext('2d');
+
+        const GIF_URL = "https://media1.tenor.com/m/ZXPCRT8wKXgAAAAd/cat-scuba-cat.gif";
+
+        // Arayüz Kontrolleri
+        const sizeSlider = document.getElementById('sizeSlider');
+        const countSlider = document.getElementById('countSlider');
+        const gravitySlider = document.getElementById('gravitySlider');
+        const panelBtn = document.getElementById('panelBtn');
+        const devPanel = document.getElementById('devPanel');
+
+        let panelVisible = false;
+        function togglePanel() {
+            panelVisible = !panelVisible;
+            if (panelVisible) {
+                devPanel.classList.remove('hidden');
+                panelBtn.style.background = 'rgba(255,200,50,0.2)';
+                panelBtn.style.color = '#ffc832';
+                panelBtn.style.borderColor = '#ffc832';
+            } else {
+                devPanel.classList.add('hidden');
+                panelBtn.style.background = 'rgba(100,200,255,.1)';
+                panelBtn.style.color = '#64c8ff';
+                panelBtn.style.borderColor = '#64c8ff';
+            }
+        }
+
+        // Performans (FPS) İzleyici
+        let lastTime = performance.now();
+        let frameCount = 0;
+        let fps = 0;
+        const fpsMeter = document.getElementById('fpsMeter');
+
+        // ═══════════════════════════════════════════
+        //  KEDİ (SCUBA) MOTORU
+        // ═══════════════════════════════════════════
+        const cats = [];
+
+        function spawnCat() {
+            const W = uiCv.width, H = uiCv.height;
+
+            const baseSize = parseInt(sizeSlider.value);
+            const size = baseSize + (Math.random() * (baseSize * 0.4));
+
+            const imgEl = document.createElement('img');
+            imgEl.src = GIF_URL;
+            imgEl.style.position = 'absolute';
+            imgEl.style.width = size + 'px';
+            imgEl.style.height = size + 'px';
+            imgEl.style.top = '0';
+            imgEl.style.left = '0';
+            imgEl.style.transformOrigin = 'center center';
+            imgEl.style.opacity = '0';
+            imgEl.style.transition = 'opacity 0.3s ease-in';
+            imgEl.style.filter = 'drop-shadow(0px 15px 20px rgba(0,0,0,0.6))';
+            catsContainer.appendChild(imgEl);
+
+            cats.push({
+                el: imgEl,
+                x: Math.random() * (W - size) + size / 2,
+                y: Math.random() * (H - size) + size / 2,
+                vx: (Math.random() - 0.5) * 12,
+                vy: (Math.random() - 0.5) * 12,
+                size: size,
+                alpha: 0,
+                life: 1.0,
+                maxLife: 200 + Math.random() * 300,
+                frame: 0,
+                flipX: Math.random() > 0.5 ? -1 : 1,
+                wobble: Math.random() * Math.PI * 2,
+                wobbleSpeed: 0.02 + Math.random() * 0.03
+            });
+        }
+
+        // ═══════════════════════════════════════════
+        //  EL HAREKETİ VE DALGA (WAVE) TESPİTİ
+        // ═══════════════════════════════════════════
+        let rightHand = null;
+        let leftHand = null;
+        const wristHistory = [];
+        const WAVE_WIN = 20;
+        let waveScore = 0;
+        let lastSpawnFrame = -60;
+        let totalFrame = 0;
+
+        function detectWave() {
+            if (wristHistory.length < 6) return 0;
+            let changes = 0;
+            for (let i = 2; i < wristHistory.length; i++) {
+                const d1 = wristHistory[i] - wristHistory[i - 1];
+                const d2 = wristHistory[i - 1] - wristHistory[i - 2];
+                if (d1 * d2 < -0.0004) changes++;
+            }
+            const mn = Math.min(...wristHistory);
+            const mx = Math.max(...wristHistory);
+            const range = mx - mn;
+            return Math.min(changes * 0.18 + range * 3.0, 1.0);
+        }
+
+        function onResults(res) {
+            rightHand = null; leftHand = null;
+            if (!res.multiHandLandmarks) return;
+            res.multiHandLandmarks.forEach((lm, i) => {
+                const label = res.multiHandedness[i].label;
+                if (label === 'Left') rightHand = lm;
+                else leftHand = lm;
+            });
+
+            if (rightHand) {
+                wristHistory.push(rightHand[0].x);
+                if (wristHistory.length > WAVE_WIN) wristHistory.shift();
+
+                if (totalFrame % 3 === 0 && waveScore > 0.2) {
+                    addBubble(rightHand[9].x * uiCv.width, rightHand[9].y * uiCv.height);
+                }
+            } else {
+                if (wristHistory.length > 0) wristHistory.shift();
+            }
+        }
+
+        // ═══════════════════════════════════════════
+        //  SİSTEM BAŞLATMA
+        // ═══════════════════════════════════════════
+        let handsModel = null;
+
+        function startApp() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('loadScreen').style.display = 'flex';
+
+            spawnDomBubbles();
+
+            document.getElementById('ldTxt').textContent = 'YAPAY ZEKA MODELİ YÜKLENİYOR...';
+            handsModel = new Hands({
+                locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${f}`
+            });
+
+            handsModel.setOptions({
+                maxNumHands: 2,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.65,
+                minTrackingConfidence: 0.65
+            });
+            handsModel.onResults(onResults);
+
+            document.getElementById('ldTxt').textContent = 'KAMERA ERİŞİMİ BEKLENİYOR...';
+            startCam();
+        }
+
+        async function startCam() {
+            try {
+                // HTTPS kontrolü veya tarayıcı desteği kontrolü
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error("Kamera erişimi engellendi veya HTTPS bağlantısı yok.");
+                }
+
+                // iOS uyumluluğu için çözünürlük ideal seviyelere çekildi
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        facingMode: 'user', 
+                        width: { ideal: 1280 }, 
+                        height: { ideal: 720 } 
+                    },
+                    audio: false
+                });
+                
+                video.srcObject = stream;
+                
+                // iOS Safaride takılmayı engellemek için playsinline özellikleri js ile de basılıyor
+                video.setAttribute('playsinline', 'true');
+                video.setAttribute('webkit-playsinline', 'true');
+                
+                video.play().catch(e => console.warn("Video play engellendi:", e));
+
+                // Video datası tamamen yüklendikten sonra işlemi başlat
+                video.onloadedmetadata = () => {
+                    resize();
+                    window.addEventListener('resize', resize);
+
+                    document.getElementById('loadScreen').style.display = 'none';
+                    document.getElementById('stTxt').textContent = 'AKTİF';
+                    document.getElementById('stTxt').style.color = '#44ff88';
+                    document.getElementById('dotEl').classList.add('on');
+
+                    panelBtn.style.display = 'block';
+                    devPanel.style.display = 'block';
+
+                    processLoop();
+                    drawLoop();
+                };
+
+            } catch (e) {
+                // Hata mesajını daha açıklayıcı hale getirdik
+                document.querySelector('.ring').style.display = 'none';
+                const errorTxt = document.getElementById('ldTxt');
+                errorTxt.innerHTML = `KAMERA HATASI: İZİNLERİ KONTROL EDİN<br><br><span style="color:#ffffff; font-size:10px; font-weight:normal;">HATA DETAYI: ${e.message}<br>(iOS cihazlarda test ediyorsanız sitenizin HTTPS olması zorunludur!)</span>`;
+                errorTxt.style.color = '#ff4444';
+            }
+        }
+
+        function resize() {
+            lmCv.width = uiCv.width = window.innerWidth;
+            lmCv.height = uiCv.height = window.innerHeight;
+        }
+
+        async function processLoop() {
+            // Sadece video hazırsa ve duraklatılmadıysa işleme sok
+            if (video.readyState >= 2 && !video.paused) {
+                try { 
+                    await handsModel.send({ image: video }); 
+                } catch (e) { 
+                    console.error("Frame işleme hatası:", e); 
+                }
+            }
+            requestAnimationFrame(processLoop);
+        }
+
+        // ═══════════════════════════════════════════
+        //  RENDER MOTORU (DRAW LOOP)
+        // ═══════════════════════════════════════════
+        function drawLoop() {
+            totalFrame++;
+            calculateFPS();
+
+            lmCtx.clearRect(0, 0, lmCv.width, lmCv.height);
+            uiCtx.clearRect(0, 0, uiCv.width, uiCv.height);
+
+            lmCtx.drawImage(video, 0, 0, lmCv.width, lmCv.height);
+
+            const vg = lmCtx.createRadialGradient(
+                lmCv.width / 2, lmCv.height / 2, lmCv.height * .15,
+                lmCv.width / 2, lmCv.height / 2, lmCv.height * 1.1
+            );
+            vg.addColorStop(0, 'rgba(0,20,50,0.1)');
+            vg.addColorStop(1, 'rgba(0,10,30,0.8)');
+            lmCtx.fillStyle = vg;
+            lmCtx.fillRect(0, 0, lmCv.width, lmCv.height);
+
+            if (leftHand) drawHand(lmCtx, leftHand, '180');
+            if (rightHand) drawHand(lmCtx, rightHand, '280');
+
+            waveScore = detectWave();
+            const maxCats = parseInt(countSlider.value);
+
+            if (waveScore > 0.5 && totalFrame - lastSpawnFrame > 20 && cats.length < maxCats) {
+                spawnCat();
+                lastSpawnFrame = totalFrame;
+                document.getElementById('modeTxt').textContent = '🌊 DEV DALGIÇLAR GELİYOR';
+                document.getElementById('modeTxt').style.color = '#ffc832';
+            } else if (waveScore < 0.2) {
+                document.getElementById('modeTxt').textContent = 'SAĞ ELİ SALLA';
+                document.getElementById('modeTxt').style.color = '#a0e8ff';
+            }
+
+            const W = uiCv.width, H = uiCv.height;
+            const gravMultiplier = parseInt(gravitySlider.value) / 5;
+
+            for (let i = cats.length - 1; i >= 0; i--) {
+                const c = cats[i];
+                c.frame++;
+                c.wobble += c.wobbleSpeed * gravMultiplier;
+
+                if (c.alpha < 1) c.alpha = Math.min(c.alpha + 0.05, 1);
+
+                if (c.frame > c.maxLife) {
+                    c.life -= 0.02;
+                    if (c.life <= 0) {
+                        c.el.remove();
+                        cats.splice(i, 1);
+                        continue;
+                    }
+                }
+
+                c.x += c.vx * gravMultiplier;
+                c.y += c.vy * gravMultiplier;
+                c.vx *= 0.98;
+                c.vy *= 0.98;
+
+                c.vy += Math.sin(c.wobble * 0.8) * 0.15;
+                c.vx += Math.sin(c.wobble * 0.4) * 0.1;
+
+                if (c.x - c.size / 2 < 0) { c.x = c.size / 2; c.vx = Math.abs(c.vx) * 1.2; c.flipX = 1; }
+                if (c.x + c.size / 2 > W) { c.x = W - c.size / 2; c.vx = -Math.abs(c.vx) * 1.2; c.flipX = -1; }
+                if (c.y - c.size / 2 < 0) { c.y = c.size / 2; c.vy = Math.abs(c.vy) * 1.2; }
+                if (c.y + c.size / 2 > H) { c.y = H - c.size / 2; c.vy = -Math.abs(c.vy) * 1.2; }
+
+                const bob = Math.sin(c.wobble) * 8;
+                const finalAlpha = c.alpha * c.life;
+
+                c.el.style.transform = `translate(${c.x - c.size / 2}px, ${c.y - c.size / 2 + bob}px) scaleX(${c.flipX})`;
+                c.el.style.opacity = finalAlpha;
+
+                uiCtx.save();
+                uiCtx.globalAlpha = finalAlpha * 0.6;
+                const gl = uiCtx.createRadialGradient(c.x, c.y + bob, c.size * 0.2, c.x, c.y + bob, c.size * 0.8);
+                gl.addColorStop(0, 'rgba(100,220,255,.3)');
+                gl.addColorStop(1, 'rgba(100,220,255,0)');
+                uiCtx.fillStyle = gl;
+                uiCtx.beginPath();
+                uiCtx.ellipse(c.x, c.y + bob, c.size * .8, c.size * .8, 0, 0, Math.PI * 2);
+                uiCtx.fill();
+                uiCtx.restore();
+            }
+
+            updateBubbles();
+            requestAnimationFrame(drawLoop);
+        }
+
+        // ═══════════════════════════════════════════
+        //  SİSTEM YARDIMCILARI (FPS & ÇİZİM)
+        // ═══════════════════════════════════════════
+        function calculateFPS() {
+            const now = performance.now();
+            frameCount++;
+            if (now - lastTime >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastTime = now;
+
+                fpsMeter.textContent = `FPS: ${fps}`;
+                if (fps >= 50) { fpsMeter.style.color = '#44ff88'; fpsMeter.style.borderColor = '#44ff88'; }
+                else if (fps >= 30) { fpsMeter.style.color = '#ffc832'; fpsMeter.style.borderColor = '#ffc832'; }
+                else { fpsMeter.style.color = '#ff4444'; fpsMeter.style.borderColor = '#ff4444'; }
+            }
+        }
+
+        function drawHand(ctx, lm, hue) {
+            const W = lmCv.width, H = lmCv.height;
+            const CONN = [[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8], [5, 9], [9, 10], [10, 11], [11, 12], [9, 13], [13, 14], [14, 15], [15, 16], [13, 17], [17, 18], [18, 19], [19, 20], [0, 17]];
+
+            ctx.save();
+            CONN.forEach(([a, b]) => {
+                const ax = lm[a].x * W, ay = lm[a].y * H;
+                const bx = lm[b].x * W, by = lm[b].y * H;
+                ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
+                ctx.strokeStyle = `hsla(${hue}, 100%, 65%, 0.7)`;
+                ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
+
+                ctx.strokeStyle = `rgba(255,255,255,0.4)`;
+                ctx.lineWidth = 1; ctx.stroke();
+            });
+
+            lm.forEach((pt, i) => {
+                const x = pt.x * W, y = pt.y * H;
+                const tip = [4, 8, 12, 16, 20].includes(i);
+                const r = tip ? 8 : i === 0 ? 7 : 4;
+
+                if (tip) {
+                    ctx.beginPath(); ctx.arc(x, y, r + 6, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${hue},100%,70%,.2)`; ctx.fill();
+                }
+
+                ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fillStyle = i === 8 ? '#ffffff' : tip ? `hsl(${hue},100%,85%)` : `hsl(${hue},75%,50%)`;
+                ctx.fill();
+
+                if (i === 8) {
+                    ctx.beginPath(); ctx.arc(x, y, r + 5 + Math.sin(totalFrame * 0.2) * 3, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 2; ctx.stroke();
+                }
+            });
+            ctx.restore();
+        }
+
+        // ═══════════════════════════════════════════
+        //  GELİŞMİŞ SU BALONCUKLARI FİZİĞİ
+        // ═══════════════════════════════════════════
+        const bubPool = [];
+        function addBubble(x, y) {
+            bubPool.push({
+                x: x + (Math.random() - 0.5) * 40,
+                y: y + (Math.random() - 0.5) * 40,
+                r: 4 + Math.random() * 10,
+                vy: -2 - Math.random() * 1.5,
+                vx: (Math.random() - .5) * 1.2,
+                a: 0.8,
+                ph: Math.random() * Math.PI * 2
+            });
+        }
+
+        function updateBubbles() {
+            for (let i = bubPool.length - 1; i >= 0; i--) {
+                const b = bubPool[i];
+                b.y += b.vy;
+                b.x += b.vx + Math.sin(totalFrame * 0.05 + b.ph) * 0.6;
+                b.a -= 0.015;
+                b.r += 0.05;
+
+                if (b.a <= 0) { bubPool.splice(i, 1); continue; }
+
+                uiCtx.save();
+                uiCtx.globalAlpha = b.a;
+                uiCtx.beginPath(); uiCtx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+                uiCtx.strokeStyle = 'rgba(150,230,255,1)'; uiCtx.lineWidth = 1.5; uiCtx.stroke();
+
+                uiCtx.beginPath(); uiCtx.arc(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.25, 0, Math.PI * 2);
+                uiCtx.fillStyle = 'rgba(255,255,255,.7)'; uiCtx.fill();
+                uiCtx.restore();
+            }
+        }
+
+        function spawnDomBubbles() {
+            setInterval(() => {
+                const b = document.createElement('div');
+                b.style.position = 'absolute'; b.style.borderRadius = '50%';
+                b.style.border = '1px solid rgba(100,200,255,.2)';
+                b.style.background = 'rgba(100,200,255,.05)';
+                b.style.pointerEvents = 'none'; b.style.zIndex = '10';
+
+                const s = 8 + Math.random() * 20;
+                b.style.width = s + 'px'; b.style.height = s + 'px';
+                b.style.left = Math.random() * 100 + 'vw'; b.style.bottom = '-30px';
+
+                const dur = 5 + Math.random() * 7;
+                b.style.transition = `transform ${dur}s linear, opacity ${dur}s ease-in`;
+                document.getElementById('wrap').appendChild(b);
+
+                setTimeout(() => {
+                    b.style.transform = `translateY(-110vh) translateX(${(Math.random() - 0.5) * 100}px)`;
+                    b.style.opacity = '0';
+                }, 50);
+
+                setTimeout(() => b.remove(), dur * 1000 + 100);
+            }, 600);
+        }
+    </script>
+</body>
+
+</html>
